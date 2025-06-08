@@ -3,10 +3,19 @@ const app = express();
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
+const Chat = require('./models/chat');
+const Group  = require('./models/group');
+const connection = require("./config/db-config");
+
+
 const io = new Server(server);
 
-// Serve static files from the 'public' folder
-app.use("/", express.static(__dirname + "/public"));
+app.set('view engine' , 'ejs');
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+
 
 io.on("connection", (socket) => {
   console.log("Connected to server", socket.id);
@@ -15,30 +24,73 @@ io.on("connection", (socket) => {
     console.log("User disconnected", socket.id);
   });
 
-  // socket.on("from_client", () => {
-  //   console.log("Received from client");
-  // });
-
-  // // Send message every 3 seconds
-  // setInterval(() => {
-  //   socket.emit("from_server");
-  // }, 3000);
-
-
-
-
-
-  socket.on('new_message', (data) => {
-    // io.emit('msg_rcvd' , data);//if i did io.emit then server give response to each client 
-    // but when i do socket.emit then server give response to only that client who send the message
-    // socket.emit('msg_rcvd', data); // Send message back to the same client
-    // if you do socket.broadcast.emit() ==> then apart from current client you send the data
-    // to each client
-    // socket.broadcast.emit('msg_rcvd' , data);
-
+  socket.on('join_room' , (data) => {
+     console.log("Joining a rooom " , data.roomid);
+     socket.join(data.roomid);   
   })
+
+  socket.on("new_message", async(data) => {
+    const chat = Chat.create({
+      roomid : data.roomid,
+      sender : data.sender,
+      content : data.message,
+    })
+    io.to(data.roomid).emit('msg_rcvd' , data);
+  });
 });
 
-server.listen(3000, () => {
+
+
+// req send
+// http://localhost:3000/chat/6845c1394601d8ebb1e19f7e/lucky
+app.get('/chat/:roomid/:user', async (req, res) => {
+  console.log(req.params.roomid);
+  const chats = await Chat.find({
+     roomid :req.params.roomid
+  });
+  console.log(chats);
+  const group = await Group.findById(req.params.roomid);
+  console.log(group);
+
+  if (!group) {
+    return res.status(404).send('Group not found');
+  }
+
+  res.render('index', {
+    roomid: req.params.roomid,
+    user: req.params.user,
+    groupname: group.name,
+    prevmsgs : chats,
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+//req send
+//http://localhost:3000/group
+app.get('/group' , async(req, res) => {
+  res.render('group');
+})
+
+app.post('/group' , async(req, res) => {
+  console.log(req.body);
+   await Group.create({
+     name : req.body.name
+   });
+   res.redirect('/group');
+})
+
+server.listen(3000, async () => {
   console.log("Server is listening now on http://localhost:3000");
+  await connection();
+  console.log("DB is COnnected");
 });

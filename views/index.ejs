@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.io Demo</title>
+</head>
+<body>
+
+  <h1>Chatting.....Inside <%= groupname %></h1>
+
+  <div id="chat">
+    <input type="text" id="chat_box" placeholder="Type your message here...">
+    <button id="send">Send</button>
+
+    <ul id="messageList">
+      <!-- Messages will be appended here -->
+       <% for(let i = 0 ; i < prevmsgs.length; i++) { %>
+         <li> <% prevmsgs[i].sender %> - <% prevmsgs[i].content %> </li>
+        <% } %>
+    </ul>
+  </div>
+
+  <!-- JavaScript part -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+
+    let input = document.getElementById("chat_box");
+    let msg_list = document.getElementById("messageList");
+    let send = document.getElementById("send");
+
+    // Join the room when the page loads
+    socket.emit('join_room', {
+      roomid: '<%= roomid %>'
+    });
+
+    send.addEventListener("click", () => {
+      let msg = input.value;
+      if (msg.trim() !== "") {
+        socket.emit("new_message", {
+          message: msg,
+          roomid : '<%= roomid %>',
+          sender : '<%= user %>'
+        });
+        input.value = ""; // Clear input after sending
+      }
+    });
+
+    socket.on("msg_rcvd", (data) => {
+      let msg = document.createElement('li');
+      msg.textContent =  data.sender + ':-' + data.message;
+      msg_list.appendChild(msg);
+    });
+  </script>
+
+</body>
+</html>
