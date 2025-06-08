@@ -15,14 +15,28 @@ io.on("connection", (socket) => {
     console.log("User disconnected", socket.id);
   });
 
-  socket.on("from_client", () => {
-    console.log("Received from client");
-  });
+  // socket.on("from_client", () => {
+  //   console.log("Received from client");
+  // });
 
-  // Send message every 3 seconds
-  setInterval(() => {
-    socket.emit("from_server");
-  }, 3000);
+  // // Send message every 3 seconds
+  // setInterval(() => {
+  //   socket.emit("from_server");
+  // }, 3000);
+
+
+
+
+
+  socket.on('new_message', (data) => {
+    // io.emit('msg_rcvd' , data);//if i did io.emit then server give response to each client 
+    // but when i do socket.emit then server give response to only that client who send the message
+    // socket.emit('msg_rcvd', data); // Send message back to the same client
+    // if you do socket.broadcast.emit() ==> then apart from current client you send the data
+    // to each client
+    // socket.broadcast.emit('msg_rcvd' , data);
+
+  })
 });
 
 server.listen(3000, () => {
